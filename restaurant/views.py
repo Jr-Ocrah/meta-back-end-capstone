@@ -1,55 +1,36 @@
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from .models import MenuItem, Category, Cart, Order, OrderItem, UserProfile
-from .serializers import MenuItemSerializer, CategorySerializer, CartSerializer, OrderSerializer, UserProfileSerializer
-from .permissions import IsManager, IsDeliveryCrew
-from django.contrib.auth.models import Group
+from django.shortcuts import render
+from rest_framework.decorators import api_view
+from .models import Menu, Booking
+from rest_framework import generics
+from .serializers import MenuSerializer, BookingSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
-class MenuItemListView(generics.ListAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-    pagination_class = MenuItemPagination
-    filterset_fields = ['category']
-    ordering_fields = ['price']
 
-class CategoryListView(generics.ListAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+# Create your views here.
+def index(request):
+    context = {
 
-class CartView(generics.ListCreateAPIView):
-    serializer_class = CartSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    }
+    return render(request, 'restaurant/index.html', context)
 
-    def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user)
+# Create your views here. 
+class MenuItemsView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+class SingleMenuItemView(generics.RetrieveUpdateAPIView, generics.DestroyAPIView):
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
 
-class OrderView(generics.ListCreateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class BookingViewSet(generics.ListCreateAPIView):
+    queryset = Booking.objects.all()
+    serializer_class = MenuSerializer
 
-    def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_object(self):
-        return UserProfile.objects.get(user=self.request.user)
-
-class AssignUserToManagerGroup(generics.UpdateAPIView):
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAdminUser]
-    queryset = UserProfile.objects.all()
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        group = Group.objects.get(name='Manager')
-        instance.user.groups.add(group)
-        return Response({'message': 'User assigned to Manager group'}, status=status.HTTP_200_OK)
+@api_view()
+@permission_classes([IsAuthenticated])
+# @authentication_classes([TokenAuthentication])
+def msg(request):
+    return Response({"message":"This view is protected"})
